@@ -4,7 +4,7 @@
 
 - Cuenta en [GitHub](https://github.com)
 - Cuenta en [Streamlit Cloud](https://share.streamlit.io)
-- API key de Google Gemini: `AIzaSyC_TztBmFF_Ot24MYbvoMKNK-s3enc0Wrs`
+- API key de Google Gemini (obtén la tuya en [Google AI Studio](https://aistudio.google.com/apikey))
 
 ## 🔧 Pasos para Publicar
 
@@ -45,8 +45,10 @@ git push -u origin main
 En **Advanced settings** → **Secrets**, añadir:
 
 ```toml
-GOOGLE_API_KEY = "AIzaSyC_TztBmFF_Ot24MYbvoMKNK-s3enc0Wrs"
+GOOGLE_API_KEY = "tu-api-key-de-google-gemini-aqui"
 ```
+
+⚠️ **IMPORTANTE**: Usa tu propia API key de Google Gemini (obtén una en https://aistudio.google.com/apikey)
 
 ### 4. Deploy
 
