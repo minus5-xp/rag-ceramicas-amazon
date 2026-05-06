@@ -6,6 +6,7 @@ __pycache__/
 .Python
 env/
 venv/
+.venv/
 ENV/
 build/
 develop-eggs/
@@ -34,6 +35,7 @@ chroma_db/
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb_checkpoints
+*.ipynb
 
 # IDEs
 .vscode/
@@ -54,3 +56,14 @@ Thumbs.db
 # Cache
 *.cache
 .cache/
+
+# Project specific - archivos de desarrollo
+exportar_reviews_amazon.py
+exportar_reviews_amazon_v2.py
+extraer_reviews_mysql.py
+test_embeddings.py
+test_google_api.py
+fix_torch.bat
+app_rag_ceramicas.py
+*.pdf
+slides*.pdf
