@@ -8,7 +8,7 @@ import pandas as pd
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 import os
@@ -237,13 +237,14 @@ def crear_rag_chain(vectorstore, api_key, k=5):
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
         google_api_key=api_key,
-        temperature=0.3
+        temperature=0.3,
+        convert_system_message_to_human=True  # Fix para compatibilidad con Gemini
     )
     
     retriever = vectorstore.as_retriever(search_kwargs={"k": k})
     
-    prompt_rag = ChatPromptTemplate.from_messages([
-        ("system", """Eres un asistente experto en análisis de productos para el hogar, especializado en baldosas cerámicas, azulejos y pisos de vinilo.
+    # Usar template de prompt simple sin system message
+    prompt_template = """Eres un asistente experto en análisis de productos para el hogar, especializado en baldosas cerámicas, azulejos y pisos de vinilo.
 
 Tu función es analizar las reviews de clientes y proporcionar insights útiles. Puedes:
 - Comparar diferentes tipos de productos (vinilo vs cerámica, diferentes marcas, etc.)
@@ -261,9 +262,16 @@ Cuando hagas comparaciones:
 - Si una comparación específica no tiene suficiente información, indícalo
 
 Reviews recuperadas:
-{context}"""),
-        ("human", "{question}")
-    ])
+{context}
+
+Pregunta del usuario: {question}
+
+Respuesta:"""
+    
+    prompt_rag = PromptTemplate(
+        template=prompt_template,
+        input_variables=["context", "question"]
+    )
     
     def format_docs(docs):
         """Formatea los documentos recuperados con más contexto para comparaciones"""
