@@ -22,8 +22,8 @@ st.set_page_config(
 )
 
 # Título principal
-st.title("Sistema RAG para Analisis de Reviews de Baldosas Ceramicas")
-st.markdown("### Analisis inteligente de 1,500 reviews de productos del hogar")
+st.title("Sistema RAG para Análisis de Reviews de Baldosas Cerámicas")
+st.markdown("### Análisis inteligente de reviews de productos de cermica y vinilo")
 
 # Cargar API Key de forma segura (solo desde secrets.toml)
 api_key = None
@@ -33,6 +33,14 @@ try:
         api_key = None
 except:
     api_key = None
+
+# Verificación crítica de API key
+if api_key is None:
+    st.error("❌ API Key de Google Gemini no encontrada")
+    st.warning("🔑 Para usar esta app, configura `GOOGLE_API_KEY` en los Secrets de Streamlit Cloud")
+    st.info("👉 Ve a 'Manage app' → 'Settings' → 'Secrets' y añade tu API key")
+    st.code('GOOGLE_API_KEY = "tu-api-key-de-google-gemini"', language="toml")
+    st.stop()
 
 # Sidebar para configuración
 with st.sidebar:
@@ -173,39 +181,54 @@ def limpiar_texto(texto):
 def crear_vectorstore(_df, _api_key):
     """Crea el índice vectorial en ChromaDB"""
     
-    st.info("Generando embeddings y creando indice vectorial...")
+    # Limitar número de documentos para evitar límites de API en cloud
+    MAX_DOCS = 5000
+    if len(_df) > MAX_DOCS:
+        st.warning(f"⚠️ Limitando a {MAX_DOCS:,} reviews para optimizar rendimiento en cloud")
+        _df = _df.sample(n=MAX_DOCS, random_state=42)
     
-    # Configurar embeddings de Gemini (usando el modelo correcto de Google)
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/gemini-embedding-001",
-        google_api_key=_api_key
-    )
+    st.info(f"Generando embeddings para {len(_df):,} reviews...")
     
-    # Convertir a Documents (limpiando el texto)
-    docs = [
-        Document(
-            page_content=limpiar_texto(f"{row['title']}\n\n{row['text']}"),
-            metadata={
-                "rating": int(row["rating"]),
-                "parent_asin": str(row["parent_asin"])
-            }
+    try:
+        # Configurar embeddings de Gemini (usando el modelo correcto de Google)
+        embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/gemini-embedding-001",
+            google_api_key=_api_key,
+            task_type="retrieval_document"
         )
-        for _, row in _df.iterrows()
-    ]
-    
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    
-    vectorstore = Chroma.from_documents(
-        docs, 
-        embeddings,
-        collection_name="ceramic_tiles_reviews_v2"
-    )
-    
-    progress_bar.progress(1.0)
-    status_text.text(f"Indice vectorial creado: {len(docs):,} vectores")
-    
-    return vectorstore
+        
+        # Convertir a Documents (limpiando el texto)
+        docs = [
+            Document(
+                page_content=limpiar_texto(f"{row['title']}\n\n{row['text']}"),
+                metadata={
+                    "rating": int(row["rating"]),
+                    "parent_asin": str(row["parent_asin"])
+                }
+            )
+            for _, row in _df.iterrows()
+        ]
+        
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        status_text.text("Creando índice vectorial...")
+        
+        # Crear vectorstore con batching automático
+        vectorstore = Chroma.from_documents(
+            docs, 
+            embeddings,
+            collection_name="ceramic_tiles_reviews_v2"
+        )
+        
+        progress_bar.progress(1.0)
+        status_text.text(f"✅ Índice vectorial creado: {len(docs):,} vectores")
+        
+        return vectorstore
+        
+    except Exception as e:
+        st.error(f"❌ Error al crear vectorstore: {str(e)}")
+        st.error("Verifica que la API key de Google Gemini sea válida y tenga cuota disponible")
+        raise
 
 # Función para crear la cadena RAG
 def crear_rag_chain(vectorstore, api_key, k=5):
